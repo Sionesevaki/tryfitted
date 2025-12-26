@@ -73,10 +73,17 @@ RUN set -eux; \
       git -C /tmp/meshoptimizer remote add origin "$MESHOPTIMIZER_GIT_URL"; \
       git -C /tmp/meshoptimizer fetch --depth 1 origin "$MESHOPTIMIZER_GIT_REF"; \
       git -C /tmp/meshoptimizer checkout --detach FETCH_HEAD; \
-      cmake -S /tmp/meshoptimizer -B /tmp/meshoptimizer/build -DCMAKE_BUILD_TYPE=Release; \
-      cmake --build /tmp/meshoptimizer/build -j"$(nproc)"; \
-      test -x /tmp/meshoptimizer/build/gltfpack; \
-      mv /tmp/meshoptimizer/build/gltfpack /usr/local/bin/gltfpack; \
+      cmake -S /tmp/meshoptimizer -B /tmp/meshoptimizer/build -DCMAKE_BUILD_TYPE=Release -DMESHOPT_BUILD_TOOLS=ON -DMESHOPT_BUILD_GLTFPACK=ON; \
+      cmake --build /tmp/meshoptimizer/build --target gltfpack -j"$(nproc)"; \
+      if [ -x /tmp/meshoptimizer/build/gltfpack ]; then \
+        mv /tmp/meshoptimizer/build/gltfpack /usr/local/bin/gltfpack; \
+      elif [ -x /tmp/meshoptimizer/build/bin/gltfpack ]; then \
+        mv /tmp/meshoptimizer/build/bin/gltfpack /usr/local/bin/gltfpack; \
+      else \
+        echo "ERROR: gltfpack binary not found after source build"; \
+        find /tmp/meshoptimizer/build -maxdepth 3 -type f -name gltfpack -print; \
+        return 1; \
+      fi; \
       chmod +x /usr/local/bin/gltfpack; \
       rm -rf /tmp/meshoptimizer; \
     }; \

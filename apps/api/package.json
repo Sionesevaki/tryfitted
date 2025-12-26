@@ -6,6 +6,7 @@
   "main": "./dist/index.js",
   "scripts": {
     "dev": "node --env-file=.env --import tsx --watch src/index.ts",
+    "postinstall": "prisma generate --schema ./prisma/schema.prisma",
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false --noEmit",
     "test": "vitest run",
