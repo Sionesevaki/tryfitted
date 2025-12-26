@@ -23,7 +23,7 @@ jobs:
           - name: avatar-worker
             image: tryfitted-avatar-worker
             context: services/avatar-worker
-            dockerfile: Dockerfile
+            dockerfile: services/avatar-worker/Dockerfile
 
     steps:
       - uses: actions/checkout@v4

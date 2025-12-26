@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN corepack enable
 
-COPY package.json pnpm-workspace.yaml tsconfig.base.json tsconfig.json ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 
@@ -14,4 +14,3 @@ RUN pnpm --filter @tryfitted/api build
 
 EXPOSE 3001
 CMD ["pnpm", "--filter", "@tryfitted/api", "start"]
-
