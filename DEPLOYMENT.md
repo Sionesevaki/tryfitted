@@ -90,6 +90,18 @@ Why `S3_ENDPOINT` must be public:
 - Route `s3.<domain>` to service `minio` port `9000`.
 - Route `minio.<domain>` to service `minio` port `9001` and lock it down (IP allowlist / basic auth / private).
 
+### 3.4 Model weights bucket (recommended)
+
+To keep RunPod setup automated and secure, store model weights in **private MinIO** on the same VPS:
+
+1. Create bucket: `tryfitted-models` (private)
+2. Upload weights into prefixes:
+   - `smplx/` (SMPL-X model files)
+   - `pixie/` (PIXIE `pixie_model.tar` + other required `data/` assets)
+   - `sam3d/` (SAM3D `model.ckpt` and `assets/mhr_model.pt`)
+   - `sam2/checkpoints/` (SAM2 checkpoint files)
+3. Create a MinIO user with **read-only** access to `tryfitted-models/*` (this is what RunPod uses for sync).
+
 ### 3.4 Redis access for RunPod
 
 Choose one:
@@ -132,16 +144,49 @@ Optional (Option A fit refinement with SAM3D; requires CUDA):
 
 ### 4.2 Mount a RunPod volume for model assets
 
-Do not bake large checkpoints into the image. Mount them as a volume, e.g.:
+Do not bake large checkpoints into the image. Mount a RunPod **Network Volume** to:
 
-- `/app/models/smplx/*` (SMPL-X models)
-- `/app/src/pipeline/PIXIE/data/*` (PIXIE weights/assets)
-- `/app/models/sam3d/*` (SAM3D checkpoint + assets)
-- `/app/vendors/sam-3d-body` and `/app/vendors/sam2` (if using Option A)
+- `/app/models`
+
+Preferred (less manual + secure):
+
+- Upload model files once to the **private** MinIO bucket `tryfitted-models` (Step 3.4)
+- In RunPod env, enable auto-sync:
+  - `MODEL_SYNC_ENABLED=true`
+  - `MODEL_SYNC_MINIO_ENDPOINT=s3.<domain>`
+  - `MODEL_SYNC_MINIO_SECURE=true`
+  - `MODEL_SYNC_MINIO_BUCKET=tryfitted-models`
+  - `MODEL_SYNC_MINIO_ACCESS_KEY=...` (read-only key)
+  - `MODEL_SYNC_MINIO_SECRET_KEY=...`
+  - `MODEL_SYNC_SOURCES=smplx,pixie,sam3d,sam2`
+  - `MODEL_SYNC_LOCAL_ROOT=/app/models`
+
+Manual fallback (only if you don’t want sync):
+
+- Copy files into the volume paths:
+  - `/app/models/smplx/*`
+  - `/app/models/pixie/*`
+  - `/app/models/sam3d/*`
+  - `/app/models/sam2/checkpoints/*`
 
 ## 5) Smoke test (end-to-end)
 
-1. Open your web UI (or call the API directly) and request presigned upload URLs:
+### 5.1 Local UI (recommended while testing deployment)
+
+For now, you can run the UI locally while the backend is deployed to `api.<domain>` and `s3.<domain>`.
+
+In this repo, `apps/web` uses the Vite dev proxy. Set these env vars when starting the dev server:
+
+- `VITE_API_ORIGIN=https://api.<domain>`
+- `VITE_MINIO_ORIGIN=https://s3.<domain>`
+
+Example:
+
+- `VITE_API_ORIGIN=https://api.tryfitted.com VITE_MINIO_ORIGIN=https://s3.tryfitted.com pnpm --filter @tryfitted/web dev`
+
+### 5.2 End-to-end
+
+1. From the UI (or call the API directly) request presigned upload URLs:
    - `POST https://api.<domain>/v1/uploads/presign`
 2. Upload front+side images to the returned `uploadUrl`.
 3. Create an avatar job:
@@ -171,4 +216,3 @@ Recommended workflow:
 - `localhost` in env vars will not work cross-host. RunPod must point at **public/VPN** addresses.
 - If MinIO is behind a reverse proxy, ensure large uploads are allowed and CORS is configured.
 - If Redis is exposed publicly, use a strong password and firewall allowlists; prefer VPN.
-

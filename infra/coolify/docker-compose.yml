@@ -10,7 +10,20 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    # If you expose Redis publicly, you MUST set a strong password and firewall the port.
+    # Prefer VPN (Tailscale/WireGuard) instead of public exposure.
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--requirepass",
+        "${REDIS_PASSWORD}",
+        "--bind",
+        "0.0.0.0",
+        "--protected-mode",
+        "no"
+      ]
     volumes:
       - redis_data:/data
     # For RunPod worker access you may need to publish this port.
@@ -73,4 +86,3 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
-

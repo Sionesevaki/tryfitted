@@ -49,19 +49,59 @@ Notes:
 
 ## What to mount on the pod (Network Volume)
 
-Mount a persistent volume to `/app/models` and (optionally) `/app/vendors`:
+Mount a persistent volume to `/app/models`.
+
+The worker image includes the required code repos (PIXIE, SMPL-Anthropometry, sam-3d-body, sam2). You only mount weights/assets.
 
 - `/app/models/smplx/*` (SMPL-X neutral/male/female)
 - `/app/models/sam3d/*` (SAM3D checkpoint + assets)
-- `/app/src/pipeline/PIXIE/data/*` (PIXIE `pixie_model.tar` + required assets)
-- `/app/vendors/sam-3d-body` (repo code)
-- `/app/vendors/sam2` (repo code + `checkpoints/*.pt`)
+- `/app/models/pixie/*` (PIXIE `pixie_model.tar` + required assets; copied into the right place at startup)
+- `/app/models/sam2/checkpoints/*` (SAM2 checkpoints; copied into `/app/vendors/sam2/checkpoints` at startup)
 
 Keeping checkpoints on a volume avoids baking large files into the image and keeps CI/CD fast.
+
+## Easier + secure: auto-sync weights from MinIO
+
+Instead of SSH/SCP into the volume, you can upload model files once to a **private** MinIO bucket (e.g. `tryfitted-models`) and let the worker download missing files at startup.
+
+1. In MinIO, create bucket: `tryfitted-models` (keep it private)
+2. Upload files into these prefixes:
+   - `smplx/`
+   - `pixie/`
+   - `sam3d/`
+   - `sam2/checkpoints/`
+3. Create a MinIO user with a **read-only** policy limited to that bucket/prefix.
+4. Enable model sync on the worker (RunPod env):
+   - `MODEL_SYNC_ENABLED=true`
+   - `MODEL_SYNC_MINIO_ENDPOINT=s3.tryfitted.com`
+   - `MODEL_SYNC_MINIO_SECURE=true`
+   - `MODEL_SYNC_MINIO_BUCKET=tryfitted-models`
+   - `MODEL_SYNC_MINIO_ACCESS_KEY=...`
+   - `MODEL_SYNC_MINIO_SECRET_KEY=...`
+
+### Suggested volume folder layout
+
+Create these folders inside the volume:
+
+- `/app/models/smplx/` (put `SMPLX_NEUTRAL.*` / `SMPLX_MALE.*` / `SMPLX_FEMALE.*` here)
+- `/app/models/sam3d/`
+  - `model.ckpt`
+  - `assets/mhr_model.pt`
+
+For PIXIE assets, choose one approach:
+
+- **Bind-mount** `/app/models/pixie` → `/app/src/pipeline/PIXIE/data` (recommended), or
+- Copy PIXIE assets directly into `/app/src/pipeline/PIXIE/data` on the volume.
+
+### One-time “populate the volume” workflow
+
+1. Create a **Network Volume** in RunPod.
+2. Start a temporary small pod (CPU is fine) that mounts the volume at `/app`.
+3. SSH into that pod and `scp`/`rsync` your local model files into the mounted paths.
+4. Stop/delete the temporary pod; reuse the same volume for the GPU worker pod.
 
 ## Cost control tips
 
 - Use RunPod Spot if available (cheaper).
 - Keep only the worker on GPU; keep API/DB/Redis/MinIO on the VPS.
 - Consider running the worker on-demand (future improvement): replace BullMQ consumption with API polling so the pod can be started only when needed.
-

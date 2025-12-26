@@ -54,3 +54,16 @@ Fastest option for early testing:
 - Expose Redis with a strong password and firewall it to only your RunPod pod IP (or a small allowlist).
 - Expose MinIO S3 with TLS (`s3.<your-domain>`), keep the console private.
 
+## Model weights (secure + less manual)
+
+Do not commit model weights (SMPL-X / PIXIE / SAM3D / SAM2) to Git.
+
+More automated approach:
+
+- Create a **private** MinIO bucket (recommended: `tryfitted-models`) and upload weights under:
+  - `smplx/`
+  - `pixie/`
+  - `sam3d/`
+  - `sam2/checkpoints/`
+- Create a MinIO user with **read-only** access to that bucket.
+- Configure the RunPod worker with `MODEL_SYNC_*` env vars so it downloads missing weights on startup into its mounted volume.
