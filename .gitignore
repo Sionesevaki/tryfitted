@@ -6,16 +6,58 @@ dist
 
 # Env
 .env
-.env.*.local
+.env.*
+!.env.example
+!.env.sample
+# Common per-app env files
+apps/**/.env
+services/**/.env
+packages/**/.env
 
 # Logs
 *.log
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+
+# TypeScript
+*.tsbuildinfo
 
 # Docker volumes (if ever bind-mounted)
 data/
 
 # Large local model assets (do not commit)
-/vendors/sam-3d-body-dinov3/
-/vendors/sam-3d-body-vith/
-/vendors/sam2/checkpoints/*.pt
-/vendors/**/.cache/
+/vendors/
+
+# Avatar worker: local-only model assets (licensed / huge)
+/services/avatar-worker/models/
+/services/avatar-worker/src/pipeline/PIXIE/
+/services/avatar-worker/src/pipeline/SMPL-Anthropometry/
+/services/avatar-worker/src/pipeline/PIXIE/data/*.tar
+/services/avatar-worker/src/pipeline/PIXIE/data/*.pth
+/services/avatar-worker/src/pipeline/PIXIE/data/*.pt
+/services/avatar-worker/src/pipeline/PIXIE/data/*.pkl
+/services/avatar-worker/src/pipeline/PIXIE/data/*.npz
+/services/avatar-worker/src/pipeline/PIXIE/data/*.bin
+/services/avatar-worker/src/pipeline/PIXIE/data/*.ckpt
+/services/avatar-worker/src/pipeline/PIXIE/data/*.safetensors
+
+# Generic large ML weights (avoid accidental commits)
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.tflite
+*.engine
+*.pkl
+*.npz
+
+# Private keys / certs
+*.pem
+*.key
+*.p12

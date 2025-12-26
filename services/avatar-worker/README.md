@@ -66,6 +66,7 @@ docker run --gpus all -e REDIS_URL=redis://host.docker.internal:6379 tryfitted-a
 ```
 
 This Docker image installs `gltfpack` during build, so GLB optimization works in deployment without any host-level install.
+It also clones the pinned PIXIE + SMPL-Anthropometry source repos during build (code only). Model weights are still mounted/configured separately.
 
 ### RunPod Deployment
 
