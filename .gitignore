@@ -1,0 +1,21 @@
+node_modules
+dist
+.turbo
+.vite
+.DS_Store
+
+# Env
+.env
+.env.*.local
+
+# Logs
+*.log
+
+# Docker volumes (if ever bind-mounted)
+data/
+
+# Large local model assets (do not commit)
+/vendors/sam-3d-body-dinov3/
+/vendors/sam-3d-body-vith/
+/vendors/sam2/checkpoints/*.pt
+/vendors/**/.cache/

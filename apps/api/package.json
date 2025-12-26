@@ -1,0 +1,32 @@
+{
+  "name": "@tryfitted/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "node --env-file=.env --import tsx --watch src/index.ts",
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false --noEmit",
+    "test": "vitest run",
+    "start": "node dist/index.js",
+    "worker": "node dist/worker.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@tryfitted/shared": "workspace:*",
+    "@fastify/cors": "^10.0.1",
+    "@prisma/client": "^6.1.0",
+    "bullmq": "^5.25.4",
+    "fastify": "^5.2.0",
+    "minio": "^8.0.1"
+  },
+  "devDependencies": {
+    "prisma": "^6.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

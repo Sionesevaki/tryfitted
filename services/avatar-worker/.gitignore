@@ -1,0 +1,18 @@
+# Ignore SMPL-X model files (must be downloaded separately)
+*.pkl
+*.npz
+
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore environment files
+.env
+.venv/
+venv/
+ENV/
+
+# Ignore temporary files
+*.tmp
+*.log

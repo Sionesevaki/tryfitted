@@ -1,0 +1,17 @@
+{
+  "name": "tryfitted",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "dev:infra": "docker compose -f infra/docker-compose.yml up -d",
+    "dev:down": "docker compose -f infra/docker-compose.yml down -v",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  }
+}
+

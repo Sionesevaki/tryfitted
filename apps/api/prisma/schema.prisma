@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploads    Upload[]
+  avatarJobs AvatarJob[]
+  avatars    Avatar[]
+
+  @@map("users")
+}
+
+model Upload {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "photo", "screenshot", etc.
+  s3Key     String
+  s3Url     String
+  metadata  Json?    // width, height, fileSize, etc.
+  createdAt DateTime @default(now())
+
+  user                   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatarJobsFront        AvatarJob[] @relation("FrontPhoto")
+  avatarJobsSide         AvatarJob[] @relation("SidePhoto")
+
+  @@index([userId])
+  @@map("uploads")
+}
+
+model AvatarJob {
+  id            String    @id @default(cuid())
+  userId        String
+  status        String    // "queued", "processing", "completed", "failed"
+  frontPhotoId  String?
+  sidePhotoId   String?
+  heightCm      Float
+  error         String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  frontPhoto Upload?  @relation("FrontPhoto", fields: [frontPhotoId], references: [id])
+  sidePhoto  Upload?  @relation("SidePhoto", fields: [sidePhotoId], references: [id])
+  avatar     Avatar?
+
+  @@index([userId])
+  @@index([status])
+  @@map("avatar_jobs")
+}
+
+model Avatar {
+  id            String   @id @default(cuid())
+  userId        String
+  jobId         String   @unique
+  glbS3Key      String
+  glbUrl        String
+  measurements  Json     // { chestCm, waistCm, hipCm, shoulderCm, sleeveCm, lengthCm, ... }
+  qualityReport Json?    // { confidence, warnings, ... }
+  createdAt     DateTime @default(now())
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  AvatarJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("avatars")
+}
