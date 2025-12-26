@@ -25,12 +25,21 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install gltfpack
-RUN wget https://github.com/zeux/meshoptimizer/releases/download/v0.20/gltfpack-0.20-linux.zip \
-    && unzip gltfpack-0.20-linux.zip \
-    && mv gltfpack /usr/local/bin/ \
-    && chmod +x /usr/local/bin/gltfpack \
-    && rm gltfpack-0.20-linux.zip
+# Install gltfpack (meshoptimizer). Asset names vary by release; try common variants.
+ARG GLTFPACK_VERSION=0.20
+RUN set -eux; \
+    base="https://github.com/zeux/meshoptimizer/releases/download/v${GLTFPACK_VERSION}"; \
+    for asset in "gltfpack-${GLTFPACK_VERSION}-linux.zip" "gltfpack-linux.zip" "gltfpack-linux-x64.zip"; do \
+      if wget -q -O /tmp/gltfpack.zip "${base}/${asset}"; then \
+        echo "Downloaded ${asset}"; \
+        break; \
+      fi; \
+    done; \
+    test -s /tmp/gltfpack.zip; \
+    unzip /tmp/gltfpack.zip; \
+    mv gltfpack /usr/local/bin/; \
+    chmod +x /usr/local/bin/gltfpack; \
+    rm -f /tmp/gltfpack.zip
 
 WORKDIR /app
 
