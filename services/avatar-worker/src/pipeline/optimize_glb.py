@@ -15,14 +15,16 @@ logger = logging.getLogger(__name__)
 class GLBOptimizer:
     """Optimize GLB files using gltfpack"""
     
-    def __init__(self, gltfpack_path: str = "gltfpack"):
+    def __init__(self, gltfpack_path: str = "gltfpack", require_gltfpack: bool = False):
         """
         Initialize GLB optimizer
         
         Args:
             gltfpack_path: Path to gltfpack binary
+            require_gltfpack: If true, fail the job when gltfpack is missing or errors
         """
         self.gltfpack_path = gltfpack_path
+        self.require_gltfpack = require_gltfpack
         logger.info(f"Initializing GLB optimizer with gltfpack: {gltfpack_path}")
 
         if any(ord(ch) < 32 for ch in gltfpack_path):
@@ -81,10 +83,13 @@ class GLBOptimizer:
             
         except subprocess.CalledProcessError as e:
             logger.error(f"gltfpack failed: {e.stderr}")
-            # If optimization fails, return original file
+            if self.require_gltfpack:
+                raise RuntimeError(f"gltfpack failed: {e.stderr}") from e
             logger.warning("Using unoptimized GLB file")
             return input_path
         except FileNotFoundError:
             logger.error(f"gltfpack not found at: {self.gltfpack_path} (raw={self.gltfpack_path!r})")
+            if self.require_gltfpack:
+                raise RuntimeError(f"gltfpack not found: {self.gltfpack_path}") from None
             logger.warning("Using unoptimized GLB file")
             return input_path

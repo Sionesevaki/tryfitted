@@ -100,6 +100,7 @@ To keep RunPod setup automated and secure, store model weights in **private MinI
    - `pixie/` (PIXIE `pixie_model.tar` + other required `data/` assets)
    - `sam3d/` (SAM3D `model.ckpt` and `assets/mhr_model.pt`)
    - `sam2/checkpoints/` (SAM2 checkpoint files)
+   - `tools/` (optional helper binaries, e.g. `tools/gltfpack` for Linux)
 3. Create a MinIO user with **read-only** access to `tryfitted-models/*` (this is what RunPod uses for sync).
 
 ### 3.4 Redis access for RunPod
@@ -131,6 +132,7 @@ Set environment variables:
 - `MINIO_SECRET_KEY=...`
 - `MINIO_BUCKET=tryfitted`
 - `REQUIRE_REAL_AVATAR=true`
+- `REQUIRE_GLTFPACK=true`
 - `SMPLX_MODEL_DIR=/app/models/smplx`
 - `PIXIE_MODEL_DIR=/app/src/pipeline/PIXIE`
 
@@ -140,7 +142,9 @@ Optional (Option A fit refinement with SAM3D; requires CUDA):
 - `SAM3DBODY_REPO_DIR=/app/vendors/sam-3d-body`
 - `SAM3DBODY_CHECKPOINT_PATH=/app/models/sam3d/model.ckpt`
 - `SAM3DBODY_MHR_PATH=/app/models/sam3d/assets/mhr_model.pt`
+- `SAM3DBODY_DETECTOR_PATH=/app/vendors/sam-3d-body`
 - `SAM3DBODY_SEGMENTOR_PATH=/app/vendors/sam2`
+- `SAM3DBODY_FOV_PATH=/app/vendors/sam-3d-body`
 
 ### 4.2 Mount a RunPod volume for model assets
 
@@ -159,6 +163,7 @@ Preferred (less manual + secure):
   - `MODEL_SYNC_MINIO_ACCESS_KEY=...` (read-only key)
   - `MODEL_SYNC_MINIO_SECRET_KEY=...`
   - `MODEL_SYNC_SOURCES=smplx,pixie,sam3d,sam2`
+  - Optional: add `tools` and upload a Linux `gltfpack` binary at `tools/gltfpack` to enable GLB optimization without downloading during image build
   - `MODEL_SYNC_LOCAL_ROOT=/app/models`
 
 Manual fallback (only if you don’t want sync):
@@ -216,3 +221,5 @@ Recommended workflow:
 - `localhost` in env vars will not work cross-host. RunPod must point at **public/VPN** addresses.
 - If MinIO is behind a reverse proxy, ensure large uploads are allowed and CORS is configured.
 - If Redis is exposed publicly, use a strong password and firewall allowlists; prefer VPN.
+- If GitHub Actions fails with `ERR_PNPM_OUTDATED_LOCKFILE`, run `pnpm install` locally to regenerate `pnpm-lock.yaml` and commit it.
+- If the avatar GLB is meshopt-compressed, the viewer must set `GLTFLoader.setMeshoptDecoder(...)` before loading.

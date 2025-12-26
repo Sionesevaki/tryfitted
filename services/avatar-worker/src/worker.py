@@ -31,6 +31,7 @@ from config import (
     SMPLX_MODEL_DIR,
     PIXIE_MODEL_DIR,
     REQUIRE_REAL_AVATAR,
+    REQUIRE_GLTFPACK,
     GLTFPACK_PATH,
     SAM3DBODY_ENABLED,
     SAM3DBODY_REPO_DIR,
@@ -106,7 +107,7 @@ class AvatarWorker:
         self.api_client = APIClient(API_BASE_URL)
         self.pixie = PIXIERunner(PIXIE_MODEL_DIR, SMPLX_MODEL_DIR)
         self.measurer = MeasurementExtractor(SMPLX_MODEL_DIR)
-        self.optimizer = GLBOptimizer(gltfpack_path=GLTFPACK_PATH)
+        self.optimizer = GLBOptimizer(gltfpack_path=GLTFPACK_PATH, require_gltfpack=REQUIRE_GLTFPACK)
 
         self.mask_provider = None
         if SAM3DBODY_ENABLED:

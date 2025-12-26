@@ -55,6 +55,7 @@ PIXIE_MODEL_DIR = os.getenv("PIXIE_MODEL_DIR", _DEFAULT_PIXIE_DIR if os.path.isd
 MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
 PROCESSING_TIMEOUT = int(os.getenv("PROCESSING_TIMEOUT", "300"))  # 5 minutes
 REQUIRE_REAL_AVATAR = os.getenv("REQUIRE_REAL_AVATAR", "false").lower() == "true"
+REQUIRE_GLTFPACK = os.getenv("REQUIRE_GLTFPACK", "false").lower() == "true"
 GLTFPACK_PATH = _normalize_windows_dotenv_path(os.getenv("GLTFPACK_PATH", "gltfpack")) or "gltfpack"
 
 # Optional fit-accuracy refinement (Option A: masks + silhouette targets -> refine betas)

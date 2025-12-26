@@ -23,23 +23,74 @@ RUN apt-get update && apt-get install -y \
     wget \
     unzip \
     ca-certificates \
+    build-essential \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
-# Install gltfpack (meshoptimizer). Asset names vary by release; try common variants.
+# Install gltfpack (meshoptimizer). This is optional; if download fails, the worker will still run (unoptimized GLB).
 ARG GLTFPACK_VERSION=0.20
+ARG MESHOPTIMIZER_GIT_URL=https://github.com/zeux/meshoptimizer.git
+ARG MESHOPTIMIZER_GIT_REF=v0.20
 RUN set -eux; \
-    base="https://github.com/zeux/meshoptimizer/releases/download/v${GLTFPACK_VERSION}"; \
-    for asset in "gltfpack-${GLTFPACK_VERSION}-linux.zip" "gltfpack-linux.zip" "gltfpack-linux-x64.zip"; do \
-      if wget -q -O /tmp/gltfpack.zip "${base}/${asset}"; then \
-        echo "Downloaded ${asset}"; \
-        break; \
-      fi; \
-    done; \
-    test -s /tmp/gltfpack.zip; \
-    unzip /tmp/gltfpack.zip; \
-    mv gltfpack /usr/local/bin/; \
-    chmod +x /usr/local/bin/gltfpack; \
-    rm -f /tmp/gltfpack.zip
+    install_gltfpack_from_base() { \
+      base="$1"; \
+      for asset in \
+        "gltfpack-${GLTFPACK_VERSION}-linux.zip" \
+        "gltfpack-${GLTFPACK_VERSION}-linux-x64.zip" \
+        "gltfpack-linux.zip" \
+        "gltfpack-linux-x64.zip" \
+        "gltfpack-linux.tar.gz" \
+        "gltfpack-linux-x64.tar.gz" \
+        "gltfpack-linux" \
+        "gltfpack" \
+      ; do \
+        if wget -q -O /tmp/gltfpack.bin "${base}/${asset}"; then \
+          if unzip -q -t /tmp/gltfpack.bin >/dev/null 2>&1; then \
+            mv /tmp/gltfpack.bin /tmp/gltfpack.zip; \
+            unzip -q /tmp/gltfpack.zip -d /tmp/gltfpack_unzip; \
+            if [ -f /tmp/gltfpack_unzip/gltfpack ]; then \
+              mv /tmp/gltfpack_unzip/gltfpack /usr/local/bin/gltfpack; \
+            elif [ -f /tmp/gltfpack_unzip/bin/gltfpack ]; then \
+              mv /tmp/gltfpack_unzip/bin/gltfpack /usr/local/bin/gltfpack; \
+            else \
+              rm -rf /tmp/gltfpack_unzip /tmp/gltfpack.zip; \
+              return 1; \
+            fi; \
+            rm -rf /tmp/gltfpack_unzip /tmp/gltfpack.zip; \
+          else \
+            mv /tmp/gltfpack.bin /usr/local/bin/gltfpack; \
+          fi; \
+          chmod +x /usr/local/bin/gltfpack; \
+          return 0; \
+        fi; \
+      done; \
+      rm -f /tmp/gltfpack.bin /tmp/gltfpack.zip || true; \
+      return 1; \
+    }; \
+    build_gltfpack_from_source() { \
+      rm -rf /tmp/meshoptimizer; \
+      git init /tmp/meshoptimizer; \
+      git -C /tmp/meshoptimizer remote add origin "$MESHOPTIMIZER_GIT_URL"; \
+      git -C /tmp/meshoptimizer fetch --depth 1 origin "$MESHOPTIMIZER_GIT_REF"; \
+      git -C /tmp/meshoptimizer checkout --detach FETCH_HEAD; \
+      cmake -S /tmp/meshoptimizer -B /tmp/meshoptimizer/build -DCMAKE_BUILD_TYPE=Release; \
+      cmake --build /tmp/meshoptimizer/build -j"$(nproc)"; \
+      test -x /tmp/meshoptimizer/build/gltfpack; \
+      mv /tmp/meshoptimizer/build/gltfpack /usr/local/bin/gltfpack; \
+      chmod +x /usr/local/bin/gltfpack; \
+      rm -rf /tmp/meshoptimizer; \
+    }; \
+    if command -v gltfpack >/dev/null 2>&1; then \
+      echo "gltfpack already installed"; \
+    elif install_gltfpack_from_base "https://github.com/zeux/meshoptimizer/releases/download/v${GLTFPACK_VERSION}"; then \
+      echo "Installed gltfpack (tag v${GLTFPACK_VERSION})"; \
+    elif install_gltfpack_from_base "https://github.com/zeux/meshoptimizer/releases/latest/download"; then \
+      echo "Installed gltfpack (latest)"; \
+    else \
+      echo "gltfpack release download failed; building from source..."; \
+      build_gltfpack_from_source; \
+      echo "Installed gltfpack (built from source: ${MESHOPTIMIZER_GIT_REF})"; \
+    fi
 
 WORKDIR /app
 

@@ -9,9 +9,8 @@
     "dev": "bash scripts/dev.sh",
     "dev:infra": "docker compose -f infra/docker-compose.yml up -d",
     "dev:down": "docker compose -f infra/docker-compose.yml down -v",
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
+    "build": "pnpm -r --sort build",
+    "test": "pnpm -r --sort test",
+    "typecheck": "pnpm -r --sort typecheck"
   }
 }
-
