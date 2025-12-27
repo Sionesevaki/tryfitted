@@ -1,5 +1,9 @@
 FROM pytorch/pytorch:2.1.2-cuda11.8-cudnn8-runtime AS builder
 
+# Prevent interactive apt prompts (e.g., tzdata).
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
 # External repos pinned for reproducible builds.
 # These repos contain code only; large model weights are still mounted via volumes at runtime.
 ARG PIXIE_GIT_URL=https://github.com/yfeng95/PIXIE.git
@@ -14,14 +18,17 @@ ARG SAM2_GIT_REF=2b90b9f5ceec907a1c18123530e92e794ad901a4
 # Keep pip output quieter in CI.
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install Python 3.10
-RUN apt-get update && apt-get install -y \
+# System deps for building native tools (gltfpack) and fetching pinned repos.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tzdata \
     git \
     wget \
     unzip \
     ca-certificates \
     build-essential \
     cmake \
+    && ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime \
+    && echo "$TZ" > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
 # Install gltfpack (meshoptimizer). This is required for production optimization.
@@ -157,12 +164,18 @@ ENV PYTHONUNBUFFERED=1
 
 FROM pytorch/pytorch:2.1.2-cuda11.8-cudnn8-runtime AS runtime
 
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 ENV PYTHONUNBUFFERED=1
 
 # Runtime deps only (no build toolchain).
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tzdata \
     ca-certificates \
+    && ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime \
+    && echo "$TZ" > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
