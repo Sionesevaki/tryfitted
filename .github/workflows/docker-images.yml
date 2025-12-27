@@ -3,7 +3,30 @@ name: docker-images
 on:
   push:
     branches: ["main"]
+    paths:
+      - "apps/api/**"
+      - "packages/shared/**"
+      - "services/avatar-worker/**"
+      - "infra/**"
+      - ".github/workflows/docker-images.yml"
   workflow_dispatch:
+    inputs:
+      build_api:
+        description: "Build/push API image"
+        required: false
+        default: true
+        type: boolean
+      build_worker:
+        description: "Build/push avatar-worker image"
+        required: false
+        default: true
+        type: boolean
+
+# Avoid wasting CI time by canceling long image builds mid-push.
+# If new commits land while an image is still building, queue the next run instead of canceling.
+concurrency:
+  group: docker-images-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -12,6 +35,7 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -27,6 +51,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Detect changed areas
+        id: changes
+        if: github.event_name == 'push'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'packages/shared/**'
+            avatar_worker:
+              - 'services/avatar-worker/**'
+              - 'infra/runpod/**'
 
       - uses: docker/setup-buildx-action@v3
 
@@ -47,6 +84,13 @@ jobs:
 
       - name: Build and push
         uses: docker/build-push-action@v6
+        if: |
+          (github.event_name == 'push' &&
+            ((matrix.name == 'api' && steps.changes.outputs.api == 'true') ||
+             (matrix.name == 'avatar-worker' && steps.changes.outputs.avatar_worker == 'true'))) ||
+          (github.event_name == 'workflow_dispatch' &&
+            ((matrix.name == 'api' && inputs.build_api) ||
+             (matrix.name == 'avatar-worker' && inputs.build_worker)))
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
@@ -54,5 +98,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
           cache-from: type=gha
           cache-to: type=gha,mode=max

@@ -1,7 +1,9 @@
-torch>=2.0.0
-torchvision>=0.15.0
+# Pin CUDA-compatible wheels to avoid pulling huge CUDA 12 dependency trees during image builds.
+# This image is based on CUDA 11.8.
+torch==2.1.2+cu118
+torchvision==0.16.2+cu118
 numpy>=1.24.0
-opencv-python>=4.8.0
+opencv-python-headless>=4.8.0
 trimesh>=4.0.0
 pygltflib>=1.16.0
 smplx>=0.1.28
@@ -19,4 +21,3 @@ yacs>=0.1.8
 einops>=0.7.0
 timm>=0.9.12
 pytorch-lightning>=2.1.0
-

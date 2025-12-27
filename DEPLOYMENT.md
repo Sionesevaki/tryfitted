@@ -33,6 +33,8 @@ This repo includes a workflow that builds and pushes images on every push to `ma
 
 - `.github/workflows/docker-images.yml`
 
+The workflow only rebuilds images whose code changed (API vs worker), to keep CI fast.
+
 Images produced:
 
 - `ghcr.io/<owner>/tryfitted-api:main` and `:sha-...`

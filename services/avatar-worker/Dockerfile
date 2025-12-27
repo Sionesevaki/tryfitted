@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 AS builder
 
 # External repos pinned for reproducible builds.
 # These repos contain code only; large model weights are still mounted via volumes at runtime.
@@ -14,10 +14,11 @@ ARG SAM2_GIT_REF=2b90b9f5ceec907a1c18123530e92e794ad901a4
 # Ensure Docker installs CUDA-enabled PyTorch (otherwise `pip install torch` often pulls CPU-only wheels).
 ENV PIP_INDEX_URL=https://download.pytorch.org/whl/cu118
 ENV PIP_EXTRA_INDEX_URL=https://pypi.org/simple
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Install Python 3.10
 RUN apt-get update && apt-get install -y \
-    python3.10 \
+    python3 \
     python3-pip \
     git \
     wget \
@@ -27,7 +28,7 @@ RUN apt-get update && apt-get install -y \
     cmake \
     && rm -rf /var/lib/apt/lists/*
 
-# Install gltfpack (meshoptimizer). This is optional; if download fails, the worker will still run (unoptimized GLB).
+# Install gltfpack (meshoptimizer). This is required for production optimization.
 ARG GLTFPACK_VERSION=0.20
 ARG MESHOPTIMIZER_GIT_URL=https://github.com/zeux/meshoptimizer.git
 ARG MESHOPTIMIZER_GIT_REF=v0.20
@@ -103,7 +104,8 @@ WORKDIR /app
 
 # Copy requirements and install dependencies
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install -r requirements.txt
 
 # Copy application code
 COPY src/ ./src/
@@ -161,5 +163,29 @@ RUN mkdir -p /app/models/smplx
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 AS runtime
+
+ENV PIP_INDEX_URL=https://download.pytorch.org/whl/cu118
+ENV PIP_EXTRA_INDEX_URL=https://pypi.org/simple
+ENV PYTHONUNBUFFERED=1
+
+# Runtime deps only (no build toolchain).
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Python deps + tools (includes gltfpack in /usr/local/bin)
+COPY --from=builder /usr/local/ /usr/local/
+
+# App + vendored repos cloned during build
+COPY --from=builder /app/ /app/
+
+# Entrypoint
+COPY --from=builder /entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

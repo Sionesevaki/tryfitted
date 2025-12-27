@@ -1,0 +1,12 @@
+.git
+__pycache__
+**/__pycache__
+**/*.pyc
+
+.env
+.env.*
+
+# Large local assets should be mounted at runtime
+models
+checkpoints
+data

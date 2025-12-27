@@ -1,0 +1,20 @@
+.git
+.github
+**/.DS_Store
+**/node_modules
+**/.pnpm-store
+**/dist
+**/.turbo
+**/.next
+**/.vite
+**/.cache
+**/*.tsbuildinfo
+**/*.log
+
+.env
+.env.*
+
+# Local-only model assets / large repos
+vendors
+models
+ResearchPapers
