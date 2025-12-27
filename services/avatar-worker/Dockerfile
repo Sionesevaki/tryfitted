@@ -179,8 +179,10 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Python deps + tools (includes gltfpack in /usr/local/bin)
-COPY --from=builder /usr/local/ /usr/local/
+# Copy only what we need from /usr/local.
+# DO NOT copy the entire /usr/local from the CUDA base image (it includes CUDA toolkits and duplicates GBs of layers).
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
+COPY --from=builder /usr/local/lib/python3.10/ /usr/local/lib/python3.10/
 
 # App + vendored repos cloned during build
 COPY --from=builder /app/ /app/
