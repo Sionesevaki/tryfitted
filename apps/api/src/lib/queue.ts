@@ -3,13 +3,21 @@ import { requiredEnv } from "./config.js";
 
 const redisUrl = requiredEnv("REDIS_URL");
 
+function decodeMaybe(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 // Parse Redis URL
 const url = new URL(redisUrl);
 const connection = {
   host: url.hostname,
   port: parseInt(url.port || "6379"),
-  ...(url.username ? { username: url.username } : {}),
-  ...(url.password ? { password: url.password } : {}),
+  ...(url.username ? { username: decodeMaybe(url.username) } : {}),
+  ...(url.password ? { password: decodeMaybe(url.password) } : {}),
   ...(url.protocol === "rediss:" ? { tls: {} } : {}),
 };
 
