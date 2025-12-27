@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 AS builder
+FROM pytorch/pytorch:2.1.2-cuda11.8-cudnn8-runtime AS builder
 
 # External repos pinned for reproducible builds.
 # These repos contain code only; large model weights are still mounted via volumes at runtime.
@@ -11,15 +11,11 @@ ARG SAM3DBODY_GIT_REF=c259bfc38500b1ce9e7048e1a4592e13b84108fe
 ARG SAM2_GIT_URL=https://github.com/facebookresearch/sam2.git
 ARG SAM2_GIT_REF=2b90b9f5ceec907a1c18123530e92e794ad901a4
 
-# Ensure Docker installs CUDA-enabled PyTorch (otherwise `pip install torch` often pulls CPU-only wheels).
-ENV PIP_INDEX_URL=https://download.pytorch.org/whl/cu118
-ENV PIP_EXTRA_INDEX_URL=https://pypi.org/simple
+# Keep pip output quieter in CI.
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Install Python 3.10
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
     git \
     wget \
     unzip \
@@ -102,11 +98,6 @@ RUN set -eux; \
 
 WORKDIR /app
 
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip3 install -r requirements.txt
-
 # Copy application code
 COPY src/ ./src/
 
@@ -164,30 +155,35 @@ RUN mkdir -p /app/models/smplx
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 AS runtime
+FROM pytorch/pytorch:2.1.2-cuda11.8-cudnn8-runtime AS runtime
 
-ENV PIP_INDEX_URL=https://download.pytorch.org/whl/cu118
-ENV PIP_EXTRA_INDEX_URL=https://pypi.org/simple
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 ENV PYTHONUNBUFFERED=1
 
 # Runtime deps only (no build toolchain).
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy only what we need from /usr/local.
-# DO NOT copy the entire /usr/local from the CUDA base image (it includes CUDA toolkits and duplicates GBs of layers).
-COPY --from=builder /usr/local/bin/ /usr/local/bin/
-COPY --from=builder /usr/local/lib/python3.10/ /usr/local/lib/python3.10/
+# Copy gltfpack from builder (and any other helper binaries we installed there).
+COPY --from=builder /usr/local/bin/gltfpack /usr/local/bin/gltfpack
 
 # App + vendored repos cloned during build
 COPY --from=builder /app/ /app/
 
 # Entrypoint
 COPY --from=builder /entrypoint.sh /entrypoint.sh
+
+# Install Python deps (excluding torch/torchvision — already in base image).
+COPY requirements.docker.txt /app/requirements.docker.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r /app/requirements.docker.txt
+
+# Ensure `python3` exists (some images provide `python` only).
+RUN if ! command -v python3 >/dev/null 2>&1 && command -v python >/dev/null 2>&1; then \
+      ln -s "$(command -v python)" /usr/local/bin/python3; \
+    fi
 
 ENTRYPOINT ["/entrypoint.sh"]
