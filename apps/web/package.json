@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc -b --pretty false --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@tryfitted/shared": "workspace:*",
@@ -25,4 +25,3 @@
     "vitest": "^2.1.8"
   }
 }
-
