@@ -52,6 +52,9 @@ services:
     image: minio/mc:latest
     depends_on:
       - minio
+    # This is a one-shot init container. If Coolify restarts it, you'll see it looping forever
+    # (yellow "restarting") even though it exits 0. Keep restart policy non-persistent.
+    restart: "on-failure:5"
     entrypoint: ["/bin/sh", "-c"]
     command: >
       "
