@@ -71,10 +71,8 @@ def main() -> int:
     prefix_root = env_str("MODEL_SYNC_PREFIX", "").lstrip("/")
 
     if not endpoint or not access_key or not secret_key:
-        logger.warning(
-            "MODEL_SYNC_ENABLED=true but MODEL_SYNC_MINIO_* credentials are not fully set; skipping model sync."
-        )
-        return 0
+        logger.error("MODEL_SYNC_ENABLED=true but MODEL_SYNC_MINIO_* credentials are not fully set.")
+        return 1
 
     # Comma-separated list of prefixes to sync from the bucket.
     # Each prefix syncs to /app/models/<name>.
@@ -95,4 +93,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

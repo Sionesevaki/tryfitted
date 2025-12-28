@@ -1,0 +1,49 @@
+services:
+  # Coolify "Resource" mode stack:
+  # - Use Coolify-managed MinIO (resource) and Redis (resource)
+  # - Keep Postgres in this stack (or use a Postgres resource too)
+  #
+  # Required stack env vars:
+  # - DATABASE_URL
+  # - REDIS_URL
+  # - S3_ENDPOINT
+  # - S3_PUBLIC_BASE_URL
+  # - S3_ACCESS_KEY
+  # - S3_SECRET_KEY
+  # - S3_BUCKET
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-tryfitted}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    image: ghcr.io/${GITHUB_REPO_OWNER:-your-org}/tryfitted-api:${API_IMAGE_TAG:-main}
+    depends_on:
+      - postgres
+    environment:
+      API_PORT: 3001
+      API_HOST: 0.0.0.0
+      LOG_LEVEL: info
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/tryfitted?schema=public}
+      # IMPORTANT: Use the Coolify Redis resource endpoint (not `redis:6379`).
+      # If your password contains `/` or `=` you may need URL-encoding.
+      REDIS_URL: ${REDIS_URL:?Set REDIS_URL in Coolify stack env}
+      # Point to Coolify MinIO resource URLs, e.g.:
+      # - S3_ENDPOINT=https://s3.tryfitted.com
+      # - S3_PUBLIC_BASE_URL=https://s3.tryfitted.com
+      S3_ENDPOINT: ${S3_ENDPOINT:?Set S3_ENDPOINT in Coolify stack env}
+      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:?Set S3_PUBLIC_BASE_URL in Coolify stack env}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY in Coolify stack env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?Set S3_SECRET_KEY in Coolify stack env}
+      S3_BUCKET: ${S3_BUCKET:-tryfitted}
+    expose:
+      - "3001"
+
+volumes:
+  postgres_data:
+

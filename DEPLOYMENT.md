@@ -53,44 +53,78 @@ Pull access:
 
 ## 3) Deploy “core services” on Coolify (VPS)
 
-Use the stack template:
+Choose one approach:
+
+### Option A: Everything in one stack (simplest)
 
 - `infra/coolify/docker-compose.yml`
+
+This runs **Postgres + Redis + MinIO + API** all inside the stack.
+
+### Option B: Use Coolify “Resources” for MinIO/Redis (recommended on Coolify)
+
+- `infra/coolify/docker-compose.resources.yml`
+
+This runs **Postgres + API** in the stack, and you run **MinIO** (and optionally **Redis**) as Coolify Resources with their own domains.
 
 ### 3.1 Create the stack in Coolify
 
 1. In Coolify → **Stacks** → create a new stack.
-2. Paste the contents of `infra/coolify/docker-compose.yml`.
+2. Paste the contents of either `infra/coolify/docker-compose.yml` (Option A) or `infra/coolify/docker-compose.resources.yml` (Option B).
 3. Add environment variables (below).
-4. Configure domains for `api` and `minio` services.
+4. Configure the domain for the `api` service (Option A or B).
+
+Notes:
+
+- Do **not** attach domains to `minio-init` (it’s a one-shot container).
+- If you’re using MinIO as a **Coolify Resource**, you attach domains on the **Resource** (e.g. `minio.<domain>` and `s3.<domain>`), not in the stack.
 
 ### 3.2 Required Coolify environment variables
 
-Minimum (set these in the stack):
+Minimum (set these in the stack; Option A or B):
 
 - `GITHUB_REPO_OWNER=<your github org/user>`
 - `API_IMAGE_TAG=main`
 - `POSTGRES_PASSWORD=<strong>`
-- `REDIS_PASSWORD=<strong>`
-- `S3_ACCESS_KEY=<strong>`
-- `S3_SECRET_KEY=<strong>`
 - `S3_BUCKET=tryfitted`
 
 API runtime:
 
 - `DATABASE_URL=postgresql://postgres:<POSTGRES_PASSWORD>@postgres:5432/tryfitted?schema=public`
-- `REDIS_URL=redis://:<REDIS_PASSWORD>@redis:6379`
 - `S3_ENDPOINT=https://s3.<domain>` (**public MinIO URL**, not `http://minio:9000`)
 - `S3_PUBLIC_BASE_URL=https://s3.<domain>`
+- `S3_ACCESS_KEY=<minio access key>`
+- `S3_SECRET_KEY=<minio secret key>`
+- `REDIS_URL=redis://:<redis password>@<redis host>:6379`
 
 Why `S3_ENDPOINT` must be public:
 
 - Browser uploads use **presigned MinIO URLs**, so the URL returned by MinIO must be reachable by the user’s browser.
 
+Option A extras (stack-managed Redis/MinIO):
+
+- `REDIS_PASSWORD=<strong>`
+- `REDIS_URL=redis://:<REDIS_PASSWORD>@redis:6379`
+- `S3_ACCESS_KEY=<strong>`
+- `S3_SECRET_KEY=<strong>`
+
+Option B extras (Coolify Resources):
+
+- Set `REDIS_URL` to your Redis Resource endpoint (prefer private networking/VPN).
+- Set `S3_ENDPOINT`, `S3_PUBLIC_BASE_URL`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` to the MinIO Resource values.
+
 ### 3.3 MinIO routing notes
+
+Option A (MinIO in stack):
 
 - Route `s3.<domain>` to service `minio` port `9000`.
 - Route `minio.<domain>` to service `minio` port `9001` and lock it down (IP allowlist / basic auth / private).
+
+Option B (MinIO Resource):
+
+- Configure these directly in the MinIO Resource UI:
+  - Console URL → `https://minio.<domain>`
+  - S3 API URL → `https://s3.<domain>`
 
 ### 3.4 Model weights bucket (recommended)
 

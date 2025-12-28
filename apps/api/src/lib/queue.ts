@@ -19,6 +19,8 @@ const connection = {
   ...(url.username ? { username: decodeMaybe(url.username) } : {}),
   ...(url.password ? { password: decodeMaybe(url.password) } : {}),
   ...(url.protocol === "rediss:" ? { tls: {} } : {}),
+  // Prevent tests from hanging if Redis isn't running.
+  ...(process.env.NODE_ENV === "test" ? { lazyConnect: true } : {}),
 };
 
 // Create queues

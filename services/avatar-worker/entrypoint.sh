@@ -16,7 +16,12 @@ is_true() {
 
 # Optional: sync model assets from a private MinIO bucket into /app/models (mounted volume).
 # This avoids manual SCP/rsync into RunPod volumes.
-python3 /app/src/model_sync.py || true
+if is_true "${MODEL_SYNC_ENABLED:-false}"; then
+  log "[entrypoint] MODEL_SYNC_ENABLED=true; syncing model assets..."
+  python3 /app/src/model_sync.py
+else
+  python3 /app/src/model_sync.py || true
+fi
 
 # This container bakes code dependencies (PIXIE, SMPL-Anthropometry, optional sam-3d-body/sam2) into the image,
 # but large model weights are mounted at runtime under /app/models.
