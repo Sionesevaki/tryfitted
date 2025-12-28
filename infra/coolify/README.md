@@ -60,7 +60,7 @@ Do not commit model weights (SMPL-X / PIXIE / SAM3D / SAM2) to Git.
 
 More automated approach:
 
-- Create a **private** MinIO bucket (recommended: `tryfitted-models`) and upload weights under:
+- Create a **private** MinIO bucket (recommended: `trifitted-models`) and upload weights under:
   - `smplx/`
   - `pixie/`
   - `sam3d/`

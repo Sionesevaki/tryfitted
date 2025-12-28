@@ -80,6 +80,7 @@ Notes:
 - `MINIO_ENDPOINT` is `host[:port]` only (no `https://`). Use `MINIO_SECURE=true` for HTTPS.
 - `REDIS_URL` must be a full URL. If the Redis password contains special characters (like `/` or `=`), URL-encode it or rotate the password to URL-safe characters.
   - Use port `6379` for `redis://` (no TLS). Only use `6380` with `rediss://` if you have actually enabled TLS on Redis.
+  - If you use `rediss://` with a private/self-signed cert, set `REDIS_SSL_CA_CERTS=/path/to/ca.pem` (recommended) or `REDIS_TLS_INSECURE=true` (debug only).
 
 ### Core (required)
 

@@ -14,6 +14,7 @@ apps/**/.env
 services/**/.env
 packages/**/.env
 
+/deployfiles/
 # Logs
 *.log
 

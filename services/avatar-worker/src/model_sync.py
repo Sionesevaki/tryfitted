@@ -66,7 +66,7 @@ def main() -> int:
     endpoint = env_str("MODEL_SYNC_MINIO_ENDPOINT")
     access_key = env_str("MODEL_SYNC_MINIO_ACCESS_KEY")
     secret_key = env_str("MODEL_SYNC_MINIO_SECRET_KEY")
-    bucket = env_str("MODEL_SYNC_MINIO_BUCKET", "tryfitted-models")
+    bucket = env_str("MODEL_SYNC_MINIO_BUCKET", "trifitted-models")
     secure = env_bool("MODEL_SYNC_MINIO_SECURE", "true")
     prefix_root = env_str("MODEL_SYNC_PREFIX", "").lstrip("/")
 

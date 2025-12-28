@@ -9,6 +9,9 @@ import json
 import logging
 from typing import Dict, Any, Optional, Callable
 import time
+import os
+import ssl
+from urllib.parse import urlsplit, urlunsplit
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +29,48 @@ class RedisClient:
         self.redis_url = redis_url
         self.client = None
         
-        logger.info(f"Initializing Redis client: {redis_url}")
+        logger.info("Initializing Redis client: %s", self._redact_url(redis_url))
         self._connect()
-    
+
+    @staticmethod
+    def _redact_url(redis_url: str) -> str:
+        try:
+            parts = urlsplit(redis_url)
+            if not parts.netloc:
+                return redis_url
+            if "@" in parts.netloc:
+                auth, host = parts.netloc.rsplit("@", 1)
+                if ":" in auth:
+                    user, _ = auth.split(":", 1)
+                    safe_auth = f"{user}:***"
+                else:
+                    safe_auth = "***"
+                netloc = f"{safe_auth}@{host}"
+            else:
+                netloc = parts.netloc
+            return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+        except Exception:
+            return "<redacted>"
+
     def _connect(self):
         """Connect to Redis"""
         try:
-            self.client = redis.from_url(self.redis_url, decode_responses=True)
+            kwargs: Dict[str, Any] = {"decode_responses": True}
+
+            # TLS options for rediss://
+            # - REDIS_TLS_INSECURE=true disables certificate verification (debug only).
+            # - REDIS_SSL_CA_CERTS=/path/to/ca.pem pins a CA bundle for self-signed/private PKI.
+            insecure_tls = os.getenv("REDIS_TLS_INSECURE", "false").strip().lower() in {"1", "true", "yes", "on"}
+            ssl_ca_certs = os.getenv("REDIS_SSL_CA_CERTS", "").strip()
+
+            if self.redis_url.startswith("rediss://"):
+                if insecure_tls:
+                    kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
+                    kwargs["ssl_check_hostname"] = False
+                elif ssl_ca_certs:
+                    kwargs["ssl_ca_certs"] = ssl_ca_certs
+
+            self.client = redis.from_url(self.redis_url, **kwargs)
             self.client.ping()
             logger.info("Successfully connected to Redis")
         except Exception as e:
